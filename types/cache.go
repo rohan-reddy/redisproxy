@@ -52,15 +52,11 @@ func (cache *cache) Close() {
 func (cache *cache) GetValue(w http.ResponseWriter, r *http.Request) {
 	key := r.Header.Get("key")
 	value := cache.get(key)
-	fetchedFromRedis := false
-
-	if value == "" {
+	if value == "" || value == "E" {
 		value = cache.getFromRedis(key)
-		fetchedFromRedis = true
 	}
 
-	fmt.Fprintf(w, "Value: %s\n", string(value))
-	fmt.Fprintf(w, "Fetched From Redis: %b\n", fetchedFromRedis)
+	fmt.Fprint(w, string(value))
 	cache.printContents()
 }
 
@@ -81,9 +77,10 @@ func (cache *cache) getFromRedis(key string) string {
 
 func (cache *cache) get(key string) string {
 	if foundNode, ok := cache.key2ElementMap[key]; ok {
-		if (time.Second * time.Now().Sub(foundNode.creationTime)) > cache.expirationTime {
+		elapsed := time.Now().Sub(foundNode.creationTime)
+		if elapsed > cache.expirationTime {
 			cache.removeKey(key)
-			return ""
+			return "E"
 		}
 
 		cache.removeNodeFromList(foundNode)
