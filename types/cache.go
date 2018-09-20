@@ -9,10 +9,6 @@ import (
 	"time"
 )
 
-type req struct {
-	key string
-}
-
 type node struct {
 	prev, next *node
 	key, value string
@@ -31,11 +27,11 @@ type cache struct {
 	conn redis.Conn
 	head, tail *node
 	key2ElementMap map[string]*node
-	maxSize int
+	capacity int
 	expirationTime time.Duration
 }
 
-func NewCache(address string, maxSize int, expirationTime int) *cache {
+func NewCache(address string, capacity int, expirationTime int) *cache {
 	c := new(cache)
 	conn, err := redis.Dial("tcp", address)
 	if err != nil {
@@ -44,20 +40,13 @@ func NewCache(address string, maxSize int, expirationTime int) *cache {
 
 	c.conn = conn
 	c.key2ElementMap = make(map[string]*node)
-	c.maxSize = maxSize
+	c.capacity = capacity
 	c.expirationTime = time.Duration(expirationTime) * time.Second
 	return c
 }
 
-func (cache *cache) printContents() {
-	curNode := cache.head
-	var b bytes.Buffer
-	for curNode != nil {
-		b.WriteString(fmt.Sprintf("(%s, %s) -> ", curNode.key, curNode.value))
-		curNode = curNode.next
-	}
-	log.Println(b.String())
-	log.Printf("Tail: (%s, %s)", cache.tail.key, cache.tail.value)
+func (cache *cache) Close() {
+	cache.conn.Close()
 }
 
 func (cache *cache) GetValue(w http.ResponseWriter, r *http.Request) {
@@ -74,6 +63,8 @@ func (cache *cache) GetValue(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Fetched From Redis: %b\n", fetchedFromRedis)
 	cache.printContents()
 }
+
+
 
 func (cache *cache) getFromRedis(key string) string {
 	var data []byte
@@ -108,7 +99,7 @@ func (cache *cache) put(key, value string) {
 	cache.insertNodeAtListFront(newNode)
 	cache.key2ElementMap[key] = newNode
 
-	if len(cache.key2ElementMap) > cache.maxSize {
+	if len(cache.key2ElementMap) > cache.capacity {
 		lastNode := cache.tail
 		if lastNode != nil {
 			cache.removeKey(lastNode.key)
@@ -155,3 +146,15 @@ func (cache *cache) removeNodeFromList(targetNode *node) (*node) {
 
 	return targetNode
 }
+
+func (cache *cache) printContents() {
+	curNode := cache.head
+	var b bytes.Buffer
+	for curNode != nil {
+		b.WriteString(fmt.Sprintf("(%s, %s) -> ", curNode.key, curNode.value))
+		curNode = curNode.next
+	}
+	log.Println(b.String())
+	log.Printf("Tail: (%s, %s)", cache.tail.key, cache.tail.value)
+}
+
