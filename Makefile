@@ -15,6 +15,7 @@ test:
 		docker-compose build
 		docker-compose up -d
 		go test
+		docker-compose down
 dummy:
 		docker-compose down
 		docker-compose build

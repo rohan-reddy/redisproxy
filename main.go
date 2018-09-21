@@ -32,13 +32,8 @@ func main() {
 	router := mux.NewRouter()
 	router.HandleFunc("/", cache.GetValue).Methods("GET")
 
-	var hostAddress string
-	if os.Getenv("testing") == "true" {
-		hostAddress = fmt.Sprintf("host.docker.internal:%d", localhostPort)
-	} else {
-		hostAddress = fmt.Sprintf(":%d", localhostPort)
-	}
 
+	hostAddress := fmt.Sprintf(":%d", localhostPort)
 	log.Fatal(http.ListenAndServe(hostAddress, router))
 }
 

@@ -49,12 +49,6 @@ func (cache *cache) Close() {
 	cache.conn.Close()
 }
 
-func (cache *cache) Clear() {
-	cache.key2ElementMap = make(map[string]*node)
-	cache.head = nil
-	cache.tail = nil
-}
-
 func (cache *cache) GetSize() int {
 	return len(cache.key2ElementMap)
 }

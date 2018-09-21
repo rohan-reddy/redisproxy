@@ -6,13 +6,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"testing"
+	"time"
 )
 
 var (
-	redisServer=":6379"
-	capacity=2
-	expiryTime=60
-	localhostPort=8080
+	redisServer = ":6379"
+	localhostPort = 8080
 	redisDirect redis.Conn
 	client = &http.Client{}
 )
@@ -54,7 +53,6 @@ func TestRedisTestServerBootedSuccessfully(t *testing.T) {
 }
 
 func TestCacheAcceptsHTTPRequests(t *testing.T) {
-	setKeyValPairsInRange(1, 5)
 	k1 := "k1"
 	observedV1 := requestValue(k1)
 	expectedV1 := "v1"
@@ -63,15 +61,68 @@ func TestCacheAcceptsHTTPRequests(t *testing.T) {
 	}
 }
 
-//func TestCacheItemsExpireAfterSpecifiedLimit(t *testing.T) {
-//	cache := NewCache(redisServer, capacity, expiryTime)
-//	k1, k2, k3 := "k1", "k2", ""
-//}
+func TestCacheItemsExpireAfterSpecifiedLimit(t *testing.T) {
+	cache := NewCache(redisServer, 1, 3)
+	defer cache.Close()
 
-//func TestLeastRecentlyUsedItemIsEvictedAtCapacity(t *testing.T) {
-//
-//}
-//
-//func TestCacheSizeNeverExceedsSpecifiedCapacity(t *testing.T) {
-//
-//}
+	cache.put("k1", "v1")
+	time.Sleep(2 * time.Second)
+	if cache.get("k1") != "v1" {
+		t.Errorf("Value expired or nil when it should have remained in cache")
+	}
+
+	time.Sleep(1 * time.Second)
+	if cache.get("k1") != "E" {
+		t.Errorf("Value expected to be expired, was not expired")
+	}
+}
+
+func TestLeastRecentlyUsedItemIsEvictedAtCapacity(t *testing.T) {
+	cache := NewCache(redisServer, 3, 60)
+	defer cache.Close()
+
+	k1, k2, k3, k4 := "k1", "k2", "k3", "k4"
+	v1, v2, v3, v4 := "v1", "v2", "v3", "v4"
+
+	cache.put(k1, v1)
+	cache.put(k2, v2)
+	cache.put(k3, v3)
+
+	cache.get(k3)
+	cache.get(k1)
+	cache.put(k4, v4)
+
+	if !(cache.get(k3) == v3 && cache.get(k1) == v1 && cache.get(k4) == v4) {
+		t.Errorf("Value expired or evicted when it should have remained in cache")
+	}
+
+	if cache.get(k2) != "" {
+		t.Errorf("Value expired or present when it should have been evicted as the LRU item")
+	}
+}
+
+
+func TestCacheSizeCompliesWithSpecifiedCapacity(t *testing.T) {
+	cache := NewCache(redisServer, 3, 60)
+	defer cache.Close()
+
+	k1, k2, k3, k4 := "k1", "k2", "k3", "k4"
+	v1, v2, v3, v4 := "v1", "v2", "v3", "v4"
+
+	cache.put(k1, v1)
+	cache.put(k2, v2)
+	cache.put(k3, v3)
+	cache.put(k4, v4)
+
+	if cache.GetSize() > 3 {
+		t.Errorf("Cache size exceeded specified capacity")
+	}
+
+	if !(cache.get(k2) == v2 && cache.get(k3) == v3 && cache.get(k4) == v4) {
+		t.Errorf("Value expired or evicted when it should have remained in cache")
+	}
+
+	if cache.get(k1) != "" {
+		t.Errorf("Value expired or present when it should have been evicted as the LRU item")
+	}
+}
