@@ -33,7 +33,6 @@ func newPool(redisServer string, maxConnections int) *redis.Pool {
 }
 
 type cache struct {
-	pool redis.Pool
 	conn redis.Conn
 	head, tail *node
 	key2ElementMap map[string]*node
@@ -43,8 +42,7 @@ type cache struct {
 
 func NewCache(redisServer string, capacity int, expirationTime int, maxConnections int) *cache {
 	c := new(cache)
-	c.pool = *newPool(redisServer, maxConnections)
-	conn, err := c.pool.Dial()
+	conn, err := newPool(redisServer, maxConnections).Dial()
 	if err != nil {
 		log.Fatal(err)
 	}
