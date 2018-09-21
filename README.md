@@ -10,7 +10,7 @@ Everything is contained in the root directory redisproxy, including:
 - cache_test.go (unit and integration tests for the cache)
 - vendor (directory containing 3rd party libraries "mux" and "redigo")
 
-#####How do these files fit together at runtime?
+##### How do these files fit together at runtime?
 1. The main() function in main.go is called at startup. A cache is initialized 
 per the configuration settings in Dockerfile, and its GetValue() function is attached
 to HTTP GET requests at localhost (the port number is set in Dockerfile).
@@ -23,15 +23,15 @@ the app returns an HTTP response of the associated value string. If not, the app
 the value from Redis, querying the linked Redis server with a "GET" command. If this also returns
 nothing, an empty string is returned. 
 
-#####Why are the files not contained within dedicated "src" and "tst" folders?
+##### Why are the files not contained within dedicated "src" and "tst" folders?
 I played around with Dockerfile configurations for a while to get the app to build 
 successfully with my original structure. In the end, I couldn't get any directory structure
 working with "docker build" besides lumping all the files into the root folder.
 
-#####What are the 3rd party libraries for?
+##### What are the 3rd party libraries for?
 "mux" handles starting up the HTTP service and "redigo" is a Redis client.
 
-#####What is docker-compose used for?
+##### What is docker-compose used for?
 If you examine Makefile, you'll see the sequence of events that occurs when you run
 "make test". First, any currently active containers started with docker-compose are shut down.
 Then, we build the app and boot up an app instance at port 8080 along with a lightweight
