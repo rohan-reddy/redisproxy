@@ -15,7 +15,7 @@ type node struct {
 	creationTime time.Time
 }
 
-func NewNode(key, value string) *node {
+func newNode(key, value string) *node {
 	n := new(node)
 	n.key = key
 	n.value = value
@@ -23,7 +23,17 @@ func NewNode(key, value string) *node {
 	return n
 }
 
+func newPool(redisServer string, maxConnections int) *redis.Pool {
+	return &redis.Pool{
+		MaxIdle: maxConnections,
+		MaxActive: maxConnections,
+		IdleTimeout: 60 * time.Second,
+		Dial: func () (redis.Conn, error) { return redis.Dial("tcp", redisServer) },
+	}
+}
+
 type cache struct {
+	pool redis.Pool
 	conn redis.Conn
 	head, tail *node
 	key2ElementMap map[string]*node
@@ -31,9 +41,10 @@ type cache struct {
 	expirationTime time.Duration
 }
 
-func NewCache(redisServer string, capacity int, expirationTime int) *cache {
+func NewCache(redisServer string, capacity int, expirationTime int, maxConnections int) *cache {
 	c := new(cache)
-	conn, err := redis.Dial("tcp", redisServer)
+	c.pool = *newPool(redisServer, maxConnections)
+	conn, err := c.pool.Dial()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -57,7 +68,7 @@ func (cache *cache) GetValue(w http.ResponseWriter, r *http.Request) {
 	key := r.Header.Get("key")
 	value, _ := cache.get(key)
 	fmt.Fprint(w, string(value))
-	cache.logContents()
+	//cache.logContents()
 }
 
 func (cache *cache) get(key string) (value string, fetchedFromRedis bool) {
@@ -104,7 +115,7 @@ func (cache *cache) putInCache(key, value string) {
 		return
 	}
 
-	newNode := NewNode(key, value)
+	newNode := newNode(key, value)
 	cache.insertNodeAtListFront(newNode)
 	cache.key2ElementMap[key] = newNode
 

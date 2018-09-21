@@ -26,7 +26,12 @@ func main() {
 		log.Fatal("Localhost port must be an integer value")
 	}
 
-	cache := NewCache(redisServer, capacity, expiryTime)
+	maxConnections, maxConnErr := strconv.Atoi(os.Getenv("maxConnections"))
+	if maxConnErr != nil {
+		log.Fatal("Max connections must be an integer value")
+	}
+
+	cache := NewCache(redisServer, capacity, expiryTime, maxConnections)
 	defer cache.Close()
 
 	router := mux.NewRouter()

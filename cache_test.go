@@ -14,6 +14,7 @@ var (
 	localhostPort = 8080
 	redisDirect redis.Conn
 	client = &http.Client{}
+	maxConnections = 3
 	k1, k2, k3, k4 = "k1", "k2", "k3", "k4"
 	v1, v2, v3, v4 = "v1", "v2", "v3", "v4"
 )
@@ -63,7 +64,7 @@ func TestCacheAcceptsHTTPRequests(t *testing.T) {
 }
 
 func TestCacheStoresValuesFetchedFromRedis(t *testing.T) {
-	cache := NewCache(redisServer, 2, 60)
+	cache := NewCache(redisServer, 2, 60, maxConnections)
 	defer cache.Close()
 
 	_, fetchedFromRedis := cache.get(k1)
@@ -88,7 +89,7 @@ func TestCacheStoresValuesFetchedFromRedis(t *testing.T) {
 }
 
 func TestCacheItemsExpireAfterSpecifiedLimit(t *testing.T) {
-	cache := NewCache(redisServer, 1, 3)
+	cache := NewCache(redisServer, 1, 3, maxConnections)
 	defer cache.Close()
 
 	cache.putInCache(k1, v1)
@@ -104,7 +105,7 @@ func TestCacheItemsExpireAfterSpecifiedLimit(t *testing.T) {
 }
 
 func TestLeastRecentlyUsedItemIsEvictedAtCapacity(t *testing.T) {
-	cache := NewCache(redisServer, 3, 60)
+	cache := NewCache(redisServer, 3, 60, maxConnections)
 	defer cache.Close()
 
 	cache.putInCache(k1, v1)
@@ -126,7 +127,7 @@ func TestLeastRecentlyUsedItemIsEvictedAtCapacity(t *testing.T) {
 
 
 func TestCacheSizeCompliesWithSpecifiedCapacity(t *testing.T) {
-	cache := NewCache(redisServer, 3, 60)
+	cache := NewCache(redisServer, 3, 60, maxConnections)
 	defer cache.Close()
 
 	cache.putInCache(k1, v1)
