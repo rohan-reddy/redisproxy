@@ -14,6 +14,8 @@ var (
 	localhostPort = 8080
 	redisDirect redis.Conn
 	client = &http.Client{}
+	k1, k2, k3, k4 = "k1", "k2", "k3", "k4"
+	v1, v2, v3, v4 = "v1", "v2", "v3", "v4"
 )
 
 func requestValue(key string) string {
@@ -53,7 +55,6 @@ func TestRedisTestServerBootedSuccessfully(t *testing.T) {
 }
 
 func TestCacheAcceptsHTTPRequests(t *testing.T) {
-	k1 := "k1"
 	observedV1 := requestValue(k1)
 	expectedV1 := "v1"
 	if observedV1 != expectedV1 {
@@ -61,18 +62,43 @@ func TestCacheAcceptsHTTPRequests(t *testing.T) {
 	}
 }
 
+func TestCacheStoresValuesFetchedFromRedis(t *testing.T) {
+	cache := NewCache(redisServer, 2, 60)
+	defer cache.Close()
+
+	_, fetchedFromRedis := cache.get(k1)
+	if fetchedFromRedis != true {
+		t.Errorf("For key %s, claimed val was not fetched from Redis but it must have been", k1)
+	}
+
+	_, fetchedFromRedis = cache.get(k2)
+	if fetchedFromRedis != true {
+		t.Errorf("For key %s, claimed val was not fetched from Redis but it must have been", k2)
+	}
+
+	_, fetchedFromRedis = cache.get(k2)
+	if fetchedFromRedis != false {
+		t.Errorf("For key %s, claimed val was fetched from Redis but it should have been fetched from cache", k2)
+	}
+
+	_, fetchedFromRedis = cache.get(k1)
+	if fetchedFromRedis != false {
+		t.Errorf("For key %s, claimed val was fetched from Redis but it should have been fetched from cache", k1)
+	}
+}
+
 func TestCacheItemsExpireAfterSpecifiedLimit(t *testing.T) {
 	cache := NewCache(redisServer, 1, 3)
 	defer cache.Close()
 
-	cache.put("k1", "v1")
+	cache.putInCache(k1, v1)
 	time.Sleep(2 * time.Second)
-	if cache.get("k1") != "v1" {
+	if cache.fetchFromCache(k1) != v1 {
 		t.Errorf("Value expired or nil when it should have remained in cache")
 	}
 
 	time.Sleep(1 * time.Second)
-	if cache.get("k1") != "E" {
+	if cache.fetchFromCache(k1) != "E" {
 		t.Errorf("Value expected to be expired, was not expired")
 	}
 }
@@ -81,22 +107,19 @@ func TestLeastRecentlyUsedItemIsEvictedAtCapacity(t *testing.T) {
 	cache := NewCache(redisServer, 3, 60)
 	defer cache.Close()
 
-	k1, k2, k3, k4 := "k1", "k2", "k3", "k4"
-	v1, v2, v3, v4 := "v1", "v2", "v3", "v4"
+	cache.putInCache(k1, v1)
+	cache.putInCache(k2, v2)
+	cache.putInCache(k3, v3)
 
-	cache.put(k1, v1)
-	cache.put(k2, v2)
-	cache.put(k3, v3)
+	cache.fetchFromCache(k3)
+	cache.fetchFromCache(k1)
+	cache.putInCache(k4, v4)
 
-	cache.get(k3)
-	cache.get(k1)
-	cache.put(k4, v4)
-
-	if !(cache.get(k3) == v3 && cache.get(k1) == v1 && cache.get(k4) == v4) {
+	if !(cache.fetchFromCache(k3) == v3 && cache.fetchFromCache(k1) == v1 && cache.fetchFromCache(k4) == v4) {
 		t.Errorf("Value expired or evicted when it should have remained in cache")
 	}
 
-	if cache.get(k2) != "" {
+	if cache.fetchFromCache(k2) != "" {
 		t.Errorf("Value expired or present when it should have been evicted as the LRU item")
 	}
 }
@@ -106,23 +129,20 @@ func TestCacheSizeCompliesWithSpecifiedCapacity(t *testing.T) {
 	cache := NewCache(redisServer, 3, 60)
 	defer cache.Close()
 
-	k1, k2, k3, k4 := "k1", "k2", "k3", "k4"
-	v1, v2, v3, v4 := "v1", "v2", "v3", "v4"
-
-	cache.put(k1, v1)
-	cache.put(k2, v2)
-	cache.put(k3, v3)
-	cache.put(k4, v4)
+	cache.putInCache(k1, v1)
+	cache.putInCache(k2, v2)
+	cache.putInCache(k3, v3)
+	cache.putInCache(k4, v4)
 
 	if cache.GetSize() > 3 {
 		t.Errorf("Cache size exceeded specified capacity")
 	}
 
-	if !(cache.get(k2) == v2 && cache.get(k3) == v3 && cache.get(k4) == v4) {
+	if !(cache.fetchFromCache(k2) == v2 && cache.fetchFromCache(k3) == v3 && cache.fetchFromCache(k4) == v4) {
 		t.Errorf("Value expired or evicted when it should have remained in cache")
 	}
 
-	if cache.get(k1) != "" {
+	if cache.fetchFromCache(k1) != "" {
 		t.Errorf("Value expired or present when it should have been evicted as the LRU item")
 	}
 }

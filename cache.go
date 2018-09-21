@@ -55,30 +55,35 @@ func (cache *cache) GetSize() int {
 
 func (cache *cache) GetValue(w http.ResponseWriter, r *http.Request) {
 	key := r.Header.Get("key")
-	value := cache.get(key)
-	if value == "" || value == "E" {
-		value = cache.getFromRedis(key)
-	}
-
+	value, _ := cache.get(key)
 	fmt.Fprint(w, string(value))
 	cache.logContents()
 }
 
+func (cache *cache) get(key string) (value string, fetchedFromRedis bool) {
+	value = cache.fetchFromCache(key)
+	if value == "" || value == "E" {
+		return cache.fetchFromRedis(key), true
+	} else {
+		return value, false
+	}
+}
 
-func (cache *cache) getFromRedis(key string) string {
+
+func (cache *cache) fetchFromRedis(key string) string {
 	var data []byte
 	data, err := redis.Bytes(cache.conn.Do("GET", key))
 	if err != nil {
 		return ""
 	} else {
 		value := string(data)
-		cache.put(key, value)
+		cache.putInCache(key, value)
 		return value
 	}
 
 }
 
-func (cache *cache) get(key string) string {
+func (cache *cache) fetchFromCache(key string) string {
 	if foundNode, ok := cache.key2ElementMap[key]; ok {
 		elapsed := time.Now().Sub(foundNode.creationTime)
 		if elapsed > cache.expirationTime {
@@ -94,7 +99,7 @@ func (cache *cache) get(key string) string {
 	}
 }
 
-func (cache *cache) put(key, value string) {
+func (cache *cache) putInCache(key, value string) {
 	if key == "" {
 		return
 	}
