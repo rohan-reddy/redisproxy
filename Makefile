@@ -12,11 +12,12 @@ clean:
 		docker-compose down
 test:
 		docker-compose down
+		docker-compose build
 		docker-compose up -d
 		go test
-		docker-compose down
 dummy:
 		docker-compose down
+		docker-compose build
 		docker-compose up
 		redis-cli set k1 v1
 		redis-cli set k2 v2

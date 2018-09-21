@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/gomodule/redigo/redis"
 	"io/ioutil"
@@ -36,40 +35,39 @@ func requestValue(key string) string {
 		panic(err)
 	}
 
-	response := new(response)
-	err = json.Unmarshal([]byte(body), &response)
-	if err != nil {
-		panic(err)
-	}
-
-	return response.Value
+	return string(body)
 }
 
-func TestRedisTestServerBootedSuccessfully(t *testing.T) {
-	redisDirect, redisErr := redis.Dial("tcp", redisServer)
-	if redisErr != nil {
-		t.Errorf("Failed to connect to test Redis server")
-	}
-
-	for i := 1; i <= 5; i++ {
+func setKeyValPairsInRange(start, end int) {
+	for i := start; i <= end; i++ {
 		redisDirect.Do("SET", fmt.Sprintf("k%d", i), fmt.Sprintf("v%d", i))
 	}
 }
-//
-//func TestCacheAcceptsHTTPRequests(t *testing.T) {
-//	k1 := "k1"
-//	observedV1 := requestValue(k1)
-//	expectedV1 := "v1"
-//	if observedV1 != expectedV1 {
-//		t.Errorf("For key %s, expected %s but got %s", k1, expectedV1, observedV1)
-//	}
-//}
+
+func TestRedisTestServerBootedSuccessfully(t *testing.T) {
+	var redisErr error
+	redisDirect, redisErr = redis.Dial("tcp", redisServer)
+	setKeyValPairsInRange(1, 5)
+	if redisErr != nil {
+		t.Errorf("Failed to connect to test Redis server")
+	}
+}
+
+func TestCacheAcceptsHTTPRequests(t *testing.T) {
+	setKeyValPairsInRange(1, 5)
+	k1 := "k1"
+	observedV1 := requestValue(k1)
+	expectedV1 := "v1"
+	if observedV1 != expectedV1 {
+		t.Errorf("For key %s, expected %s but got %s", k1, expectedV1, observedV1)
+	}
+}
 
 //func TestCacheItemsExpireAfterSpecifiedLimit(t *testing.T) {
 //	cache := NewCache(redisServer, capacity, expiryTime)
 //	k1, k2, k3 := "k1", "k2", ""
 //}
-//
+
 //func TestLeastRecentlyUsedItemIsEvictedAtCapacity(t *testing.T) {
 //
 //}
