@@ -1,0 +1,12 @@
+version: "3"
+
+services:
+  web:
+    build: .
+    ports:
+      - "8080:8081"
+      - "6379:6379"
+    links:
+      - redis_db
+  redis_db:
+    image: redis:alpine

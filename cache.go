@@ -1,4 +1,4 @@
-package types
+package main
 
 import (
 	"bytes"
@@ -31,9 +31,9 @@ type cache struct {
 	expirationTime time.Duration
 }
 
-func NewCache(address string, capacity int, expirationTime int) *cache {
+func NewCache(redisServer string, capacity int, expirationTime int) *cache {
 	c := new(cache)
-	conn, err := redis.Dial("tcp", address)
+	conn, err := redis.Dial("tcp", redisServer)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -49,6 +49,16 @@ func (cache *cache) Close() {
 	cache.conn.Close()
 }
 
+func (cache *cache) Clear() {
+	cache.key2ElementMap = make(map[string]*node)
+	cache.head = nil
+	cache.tail = nil
+}
+
+func (cache *cache) GetSize() int {
+	return len(cache.key2ElementMap)
+}
+
 func (cache *cache) GetValue(w http.ResponseWriter, r *http.Request) {
 	key := r.Header.Get("key")
 	value := cache.get(key)
@@ -57,9 +67,8 @@ func (cache *cache) GetValue(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Fprint(w, string(value))
-	cache.printContents()
+	cache.logContents()
 }
-
 
 
 func (cache *cache) getFromRedis(key string) string {
@@ -92,6 +101,10 @@ func (cache *cache) get(key string) string {
 }
 
 func (cache *cache) put(key, value string) {
+	if key == "" {
+		return
+	}
+
 	newNode := NewNode(key, value)
 	cache.insertNodeAtListFront(newNode)
 	cache.key2ElementMap[key] = newNode
@@ -144,7 +157,7 @@ func (cache *cache) removeNodeFromList(targetNode *node) (*node) {
 	return targetNode
 }
 
-func (cache *cache) printContents() {
+func (cache *cache) logContents() {
 	curNode := cache.head
 	var b bytes.Buffer
 	for curNode != nil {
@@ -152,6 +165,5 @@ func (cache *cache) printContents() {
 		curNode = curNode.next
 	}
 	log.Println(b.String())
-	log.Printf("Tail: (%s, %s)", cache.tail.key, cache.tail.value)
 }
 

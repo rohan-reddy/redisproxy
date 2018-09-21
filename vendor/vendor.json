@@ -1,0 +1,25 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "w3QCCIYHgZzIXQ+xTl7oLfFrXHs=",
+			"path": "github.com/gomodule/redigo/internal",
+			"revision": "2cd21d9966bf7ff9ae091419744f0b3fb0fecace",
+			"revisionTime": "2018-06-27T14:45:07Z"
+		},
+		{
+			"checksumSHA1": "To/N5YA/FD0Rrs6r2OOmHXgxYwI=",
+			"path": "github.com/gomodule/redigo/redis",
+			"revision": "2cd21d9966bf7ff9ae091419744f0b3fb0fecace",
+			"revisionTime": "2018-06-27T14:45:07Z"
+		},
+		{
+			"checksumSHA1": "Ld1fkCBbtUqRg3qu1gZKpP2OyO4=",
+			"path": "github.com/gorilla/mux",
+			"revision": "9e1f5955c0d22b55d9e20d6faa28589f83b2faca",
+			"revisionTime": "2018-09-03T15:43:05Z"
+		}
+	],
+	"rootPath": "redisproxy"
+}
