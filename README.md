@@ -71,10 +71,9 @@ All durations are approximate.
 - Go tutorial before diving in - 30 minutes. I've never coded in Go before, but I just looked at some basic syntax and figured out the rest along the way.
 - Setting up HTTP service in main.go - 5 minutes, was pretty self-explanatory with mux.
 - Implementing cache.go - 90 minutes due to debugging time, I knew how I wanted to implement the cache but didn't initially understand how Go pointers worked, so I spent a while debugging those issues.
-- Configuring Docker - ~5 hrs, I've never used Docker before and just couldn't get the build set up the way I wanted it. Even in its current rendition, I'm not happy with the app's structure. Included in this amount of time was setting up my integration testing environment
-using Docker compose
+- Configuring Docker - ~4 hrs, I've never used Docker before and just couldn't get the build set up the way I wanted it. Even in its current rendition, I'm not happy with the app's structure. Some of this time was diving down the rabbit-hole of trying to create multi-stage builds for lightweight images, which didn't pan out.
 - Writing Makefile - 5 min, I've never used Makefile before either but it was pretty self-explanatory.
-- Writing tests in cache_test.go - 2 hrs, 1.75 of which was figuring out how to get docker-compose to set up the environment I wanted for testing.
+- Writing tests in cache_test.go - ~3 hrs, 2.75 of which was figuring out how to get docker-compose to set up the environment I wanted for testing.
 - Adding Redis multiple connection pool - 5 min, was pretty self-explanatory with redigo library.
 - Documentation - 45 min including this README.
 
