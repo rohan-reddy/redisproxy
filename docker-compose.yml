@@ -1,3 +1,4 @@
+# Used for end to end testing.
 version: "3"
 
 services:

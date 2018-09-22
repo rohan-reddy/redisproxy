@@ -9,6 +9,11 @@ import (
 	"time"
 )
 
+/**
+Test file for the cache. Names are fairly self-explanatory.
+There is a test for each requirement of the proxy, except for sequential concurrent processing.
+ */
+
 var (
 	redisServer = ":6379"
 	localhostPort = 8080
@@ -19,6 +24,7 @@ var (
 	v1, v2, v3, v4 = "v1", "v2", "v3", "v4"
 )
 
+// Helper function used for making requests to the HTTP service booted in docker-compose.
 func requestValue(key string) string {
 	req, err := http.NewRequest("GET", fmt.Sprintf("http://localhost:%d/", localhostPort), nil)
 	if err != nil {
@@ -40,12 +46,14 @@ func requestValue(key string) string {
 	return string(body)
 }
 
+// Helper function to make requests to the Redis store booted in docker-compose.
 func setKeyValPairsInRange(start, end int) {
 	for i := start; i <= end; i++ {
 		redisDirect.Do("SET", fmt.Sprintf("k%d", i), fmt.Sprintf("v%d", i))
 	}
 }
 
+// Checks that the Redis image is up, and stores key value pairings in it for testing.
 func TestRedisTestServerBootedSuccessfully(t *testing.T) {
 	var redisErr error
 	redisDirect, redisErr = redis.Dial("tcp", redisServer)
@@ -55,6 +63,7 @@ func TestRedisTestServerBootedSuccessfully(t *testing.T) {
 	}
 }
 
+// Checks that the HTTP service is up and can successfully connect to the Redis image.
 func TestCacheAcceptsHTTPRequests(t *testing.T) {
 	observedV1 := requestValue(k1)
 	expectedV1 := "v1"
@@ -63,6 +72,7 @@ func TestCacheAcceptsHTTPRequests(t *testing.T) {
 	}
 }
 
+// Checks that the cache fetches values from Redis when it doesn't have them, but otherwise doesn't access Redis.
 func TestCacheStoresValuesFetchedFromRedis(t *testing.T) {
 	cache := NewCache(redisServer, 2, 60, maxConnections)
 	defer cache.Close()
@@ -88,6 +98,7 @@ func TestCacheStoresValuesFetchedFromRedis(t *testing.T) {
 	}
 }
 
+// Checks that cache items expire after the user-configured time limit.
 func TestCacheItemsExpireAfterSpecifiedLimit(t *testing.T) {
 	cache := NewCache(redisServer, 1, 3, maxConnections)
 	defer cache.Close()
@@ -104,6 +115,7 @@ func TestCacheItemsExpireAfterSpecifiedLimit(t *testing.T) {
 	}
 }
 
+// Checks that when the cache is at capacity, new entries evict the least recently used cache entry.
 func TestLeastRecentlyUsedItemIsEvictedAtCapacity(t *testing.T) {
 	cache := NewCache(redisServer, 3, 60, maxConnections)
 	defer cache.Close()
@@ -125,7 +137,7 @@ func TestLeastRecentlyUsedItemIsEvictedAtCapacity(t *testing.T) {
 	}
 }
 
-
+// Checks that the cache size never exceeds the user-configured capacity.
 func TestCacheSizeCompliesWithSpecifiedCapacity(t *testing.T) {
 	cache := NewCache(redisServer, 3, 60, maxConnections)
 	defer cache.Close()
